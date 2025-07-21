@@ -24,6 +24,7 @@ function communePlot(data, {width} = {}) {
 }
 ```
 
+
 <div class="grid grid-cols-2">
   <div class="card">${Inputs.table(tenders)}</div>
   <div class="card">${resize((width) => communePlot(tenders, {width}))}</div>
