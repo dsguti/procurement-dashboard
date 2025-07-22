@@ -5,36 +5,34 @@ sql:
   tenders: ./lib/count-commune-year.parquet
 ---
 
+```js
+const communes = await sql`select distinct commune, sum(n) as total from tenders group by commune order by total desc`;
+```
+
+```js
+const chl = await FileAttachment("./lib/CHL-2.json").json().then(data => ({
+  type: "FeatureCollection",
+  features: data.features.filter(d => d.properties.NAME_2 != "IsladePascua")
+}));
+```
+
 # Tenders by Commune and Year
 
 ```js
-const communes = await sql`select distinct commune, sum(n) as total from tenders group by commune order by total desc`;
-// const munic = view(Inputs.select(communes, {label: "Commune"}))
-```
-
-```js
-function communeLinePlot(data, {width} = {}) {
-  return Plot.lineY(tenders, {x: "t", y: "n"}).plot({
-    y: {grid: true},
-    title: " Number of yearly tenders in " + commune
-  });
-}
-```
-
-```js
-const chl = FileAttachment("./lib/CHL-2.json").json();
-// display(await chl);
-```
-
-```js
-function communeMapPlot(data, {height, width} = {}) {
+function communeMapPlot(data, {height, selectedCommune} = {}) {
   return Plot.plot({
-    // projection: "mercator",
+    projection: {
+      type: "mercator",
+      domain: data,
+      inset: 20
+    },
     height: height,
-    width: width,
-    x: {domain: [-76, -66]},
+    width: height * 0.4,
     marks: [
       Plot.geo(data, {
+        fill: d => d.properties.NAME_2 === selectedCommune ? "steelblue" : "lightgrey",
+        stroke: "white",
+        strokeWidth: 0.5,
         tip: true,
         channels: {
           Region: d => d.properties.NAME_1,
@@ -46,37 +44,76 @@ function communeMapPlot(data, {height, width} = {}) {
 }
 ```
 
-```js
-const commune = Mutable("Arauco");
-const mapPlot = communeMapPlot(chl, {height: 900, width: 400})
+<!-- ```js -->
+<!-- const commune = Mutable("Arauco"); -->
+<!-- const setCommune = (value) => commune.value = value; -->
+<!-- ``` -->
 
-mapPlot.addEventListener("click", (event) => {
-  commune.value = mapPlot.value.properties.NAME_2;
+```js
+const communeDropdown = Inputs.select(communes, {
+  label: "Select Commune",
+  value: "Santiago",
+  format: d => d.commune,
+  valueof: d => d.commune
 });
+
+const dropdownView = view(communeDropdown);
+
+// setCommune(dropdownView);
+```
+
+```js
+const mapPlot = communeMapPlot(chl, {
+  height: 900,
+  selectedCommune: dropdownView
+});
+
+// const mapView = view(mapPlot);
+```
+
+```js
+function communeLinePlot(data, {width, communeName} = {}) {
+  return Plot.lineY(data, {x: "t", y: "n"}).plot({
+    y: {grid: true},
+    title: "Number of yearly tenders in " + dropdownView
+  });
+}
 ```
 
 ```sql id=tenders
 select * from tenders
-where commune = ${commune} and t > 2006
+where commune = ${dropdownView} and t > 2006
 order by commune, t;
 ```
 
+<style>
+.map-container .card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+</style>
 
 <div class="grid grid-cols-4 grid-rows-4">
-  <div class="card grid-colspan-1 grid-rowspan-4">
-    ${mapPlot}
+  <div class="map-container grid-colspan-1 grid-rowspan-4">
+    <div class="card">
+      ${communeDropdown}
+      ${mapPlot}
+    </div>
   </div>
-  <div class="card grid-colspan-3 grid-rowspan-2">
+
+  <div class="card grid-colspan-2 grid-rowspan-2">
     ${resize((width) => communeLinePlot(tenders, {width}))}
   </div>
-  <div class="card grid-colspan-3 grid-rowspan-2">
+  <div class="card grid-colspan-1 grid-rowspan-2">
+  </div>
+
+  <div class="card grid-colspan-2 grid-rowspan-2">
     ${resize((width) => communeLinePlot(tenders, {width}))}
   </div>
+  <div class="card grid-colspan-1 grid-rowspan-2">
+  </div>
+
 </div>
 
-<!-- <div class="grid grid-cols-4"> -->
-<!--   <div class="card grid-colspan-1">${mapPlot}</div> -->
-<!--   <div class="card grid-colspan-3 grid-rowspan-2">${resize((width) => communeLinePlot(tenders, {width}))}</div> -->
-<!--   <div class="card grid-colspan-3 grid-rowspan-2">${resize((width) => communeLinePlot(tenders, {width}))}</div> -->
-<!-- </div> -->
 
