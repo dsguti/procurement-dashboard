@@ -2,18 +2,22 @@
 theme: dashboard
 toc: false
 sql:
-  tenders: ./lib/count-commune-year.parquet
+  tenders: ./lib/data-years-communes-regions-municpalities.parquet
 ---
 
 ```js
-const communes = await sql`select distinct commune, sum(n) as total from tenders group by commune order by total desc`;
+const communes = await sql`select distinct commune, region, sum(n) as total from tenders group by commune, region order by total desc`;
+const region = await sql`select distinct region, sum(n) as total from tenders group by region order by total desc`
 ```
 
 ```js
-const chl = await FileAttachment("./lib/CHL-2.json").json().then(data => ({
+const chl = await FileAttachment("./lib/CHL-3.json").json().then(data => ({
   type: "FeatureCollection",
-  features: data.features.filter(d => d.properties.NAME_2 != "IsladePascua")
+  features: data.features.filter(d => d.properties.NAME_2 != "IsladePascua").filter(d => d.properties.NAME_1.toLowerCase() === dropdownViewRegion)
 }));
+const filteredCommunes = communes.toArray().filter(
+  c => c.region?.toLowerCase() === dropdownViewRegion.toLowerCase()
+);
 ```
 
 # Tenders by Commune and Year
@@ -23,20 +27,20 @@ function communeMapPlot(data, {height, selectedCommune} = {}) {
   return Plot.plot({
     projection: {
       type: "mercator",
-      domain: data,
+      domain:  data,
       inset: 20
     },
     height: height,
     width: height * 0.4,
     marks: [
       Plot.geo(data, {
-        fill: d => d.properties.NAME_2 === selectedCommune ? "steelblue" : "lightgrey",
+        fill: d => d.properties.NAME_3.toLowerCase() === selectedCommune ? "steelblue" : "lightgrey",
         stroke: "white",
         strokeWidth: 0.5,
         tip: true,
         channels: {
           Region: d => d.properties.NAME_1,
-          Commune: d => d.properties.NAME_2,
+          Commune: d => d.properties.NAME_3,
         }
       }),
     ]
@@ -50,11 +54,24 @@ function communeMapPlot(data, {height, selectedCommune} = {}) {
 <!-- ``` -->
 
 ```js
-const communeDropdown = Inputs.select(communes, {
+const regionDropdown = Inputs.select(region, {
+  label: "Select Region",
+  value: "Santiago",
+  format: d => d.region,
+  valueof: d => d.region
+});
+
+const dropdownViewRegion = view(regionDropdown);
+
+// setCommune(dropdownView);
+```
+
+```js
+const communeDropdown = Inputs.select(filteredCommunes, {
   label: "Select Commune",
   value: "Santiago",
   format: d => d.commune,
-  valueof: d => d.commune
+  valueof: d => d.commune,
 });
 
 const dropdownView = view(communeDropdown);
@@ -73,7 +90,7 @@ const mapPlot = communeMapPlot(chl, {
 
 ```js
 function communeLinePlot(data, {width, communeName} = {}) {
-  return Plot.lineY(data, {x: "t", y: "n"}).plot({
+  return Plot.lineY(data, {x: "year_creation", y: "n"}).plot({
     y: {grid: true},
     title: "Number of yearly tenders in " + dropdownView
   });
@@ -81,9 +98,14 @@ function communeLinePlot(data, {width, communeName} = {}) {
 ```
 
 ```sql id=tenders
-select * from tenders
-where commune = ${dropdownView} and t > 2006
-order by commune, t;
+select commune, year_creation, cast(sum(n) as int) as n from tenders
+where commune = ${dropdownView} and year_creation > 2006
+group by year_creation, commune
+order by year_creation, commune;
+```
+
+```js
+const dataTable = display(Inputs.table(tenders));
 ```
 
 <style>
@@ -97,9 +119,11 @@ order by commune, t;
 <div class="grid grid-cols-4 grid-rows-4">
   <div class="map-container grid-colspan-1 grid-rowspan-4">
     <div class="card">
+      ${regionDropdown}
       ${communeDropdown}
       ${mapPlot}
     </div>
+
   </div>
 
   <div class="card grid-colspan-2 grid-rowspan-2">
@@ -113,7 +137,6 @@ order by commune, t;
   </div>
   <div class="card grid-colspan-1 grid-rowspan-2">
   </div>
-
 </div>
-
+${dataTable}
 
