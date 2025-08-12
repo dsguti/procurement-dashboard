@@ -8,6 +8,7 @@ sql:
 ```js
 const communes = await sql`select distinct commune, region, sum(n) as total from tenders group by commune, region order by total desc`;
 const region = await sql`select distinct region, sum(n) as total from tenders group by region order by total desc`
+const sectors = await sql`select distinct sector, sum(n) as total from tenders group by sector order by total desc`
 ```
 
 ```js
@@ -80,6 +81,19 @@ const dropdownView = view(communeDropdown);
 ```
 
 ```js
+const sectorDropdown = Inputs.select(sectors, {
+  label: "Select Sector",
+  value: "FFAA",
+  format: d => d.sector,
+  valueof: d => d.sector,
+});
+
+const dropdownSectorView = view(sectorDropdown);
+
+// setCommune(dropdownView);
+```
+
+```js
 const mapPlot = communeMapPlot(chl, {
   height: 900,
   selectedCommune: dropdownView
@@ -87,6 +101,15 @@ const mapPlot = communeMapPlot(chl, {
 
 // const mapView = view(mapPlot);
 ```
+```js
+function communeSectorLinePlot(data, {width, communeName} = {}) {
+  return Plot.lineY(data, {x: "year_creation", y: "n"}).plot({
+    y: {grid: true},
+    title: "Number of yearly tenders in " + dropdownView + " in sector " + dropdownSectorView
+  });
+}
+```
+
 
 ```js
 function communeLinePlot(data, {width, communeName} = {}) {
@@ -97,15 +120,22 @@ function communeLinePlot(data, {width, communeName} = {}) {
 }
 ```
 
-```sql id=tenders
+```sql id=tendersTotal
 select commune, year_creation, cast(sum(n) as int) as n from tenders
 where commune = ${dropdownView} and year_creation > 2006
 group by year_creation, commune
 order by year_creation, commune;
 ```
+```sql id=tendersSector
+select commune, year_creation, cast(sum(n) as int) as n from tenders
+where commune = ${dropdownView} AND sector = ${dropdownSectorView} and year_creation > 2006
+group by year_creation, commune
+order by year_creation, commune;
+```
+
 
 ```js
-const dataTable = display(Inputs.table(tenders));
+const dataTable = display(Inputs.table(tendersTotal));
 ```
 
 <style>
@@ -121,21 +151,17 @@ const dataTable = display(Inputs.table(tenders));
     <div class="card">
       ${regionDropdown}
       ${communeDropdown}
+      ${sectorDropdown}
       ${mapPlot}
     </div>
 
   </div>
 
-  <div class="card grid-colspan-2 grid-rowspan-2">
-    ${resize((width) => communeLinePlot(tenders, {width}))}
+  <div class="card grid-colspan-2 grid-rowspan-1">
+    ${resize((width) => communeLinePlot(tendersTotal, {width}))}
   </div>
-  <div class="card grid-colspan-1 grid-rowspan-2">
-  </div>
-
-  <div class="card grid-colspan-2 grid-rowspan-2">
-    ${resize((width) => communeLinePlot(tenders, {width}))}
-  </div>
-  <div class="card grid-colspan-1 grid-rowspan-2">
+  <div class="card grid-colspan-2 grid-rowspan-1">
+    ${resize((width) => communeSectorLinePlot(tendersSector, {width}))}
   </div>
 </div>
 ${dataTable}
