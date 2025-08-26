@@ -99,8 +99,14 @@ const mapPlot = communeMapPlot(chl, {
   selectedCommune: dropdownView
 });
 
-// const mapView = view(mapPlot);
+const mapView = view(mapPlot);
 ```
+
+```js
+display(mapView.properties.NAME_3)
+```
+
+
 ```js
 function communeSectorLinePlot(data, {width, communeName} = {}) {
   return Plot.lineY(data, {x: "year_creation", y: "n"}).plot({
@@ -146,8 +152,8 @@ const dataTable = display(Inputs.table(tendersTotal));
 }
 </style>
 
-<div class="grid grid-cols-4 grid-rows-4">
-  <div class="map-container grid-colspan-1 grid-rowspan-4">
+<div class="grid grid-cols-4 grid-rows-3" style="background-color: lightblue;">
+  <div class="map-container grid-colspan-1 grid-rowspan-3">
     <div class="card">
       ${regionDropdown}
       ${communeDropdown}
@@ -157,12 +163,34 @@ const dataTable = display(Inputs.table(tendersTotal));
 
   </div>
 
-  <div class="card grid-colspan-2 grid-rowspan-1">
+  <div class="card grid-colspan-1 grid-rowspan-1" style="background-color: lightblue;">
     ${resize((width) => communeLinePlot(tendersTotal, {width}))}
   </div>
-  <div class="card grid-colspan-2 grid-rowspan-1">
+  <div class="card grid-colspan-1 grid-rowspan-1">
     ${resize((width) => communeSectorLinePlot(tendersSector, {width}))}
   </div>
+  <div class="card grid-colspan-1 grid-rowspan-1">
+    
+  </div>
+    <div class="card grid-colspan-1 grid-rowspan-1">
+    
+  </div>
+    <div class="card grid-colspan-1 grid-rowspan-1">
+    
+  </div>
+    <div class="card grid-colspan-1 grid-rowspan-1">
+    
+  </div>
+    <div class="card grid-colspan-1 grid-rowspan-1">
+    
+  </div>
+    <div class="card grid-colspan-1 grid-rowspan-1">
+    
+  </div>
+    <div class="card grid-colspan-1 grid-rowspan-1">
+    
+  </div>
+
 </div>
 ${dataTable}
 
